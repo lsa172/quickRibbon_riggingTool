@@ -59,7 +59,7 @@ class quickRibbon(object):
         self.nurbsV = cmds.intFieldGrp(self.VPatch, q=True, value1=True);
         
         #create NURBS plane
-        cmds.nurbsPlane(d=1, axis=self.axis, w=self.nurbsW, lr=self.nurbsLr, n=self.nurbsN+'nurbsPlane', u=self.nurbsU, v=self.nurbsV);
+        cmds.nurbsPlane(d=3, axis=self.axis, w=self.nurbsW, lr=self.nurbsLr, n=self.nurbsN+'nurbsPlane', u=self.nurbsU, v=self.nurbsV);
     
     def make_ribbon(self, *args):
         #incomplete command. Main function isn't here yet
