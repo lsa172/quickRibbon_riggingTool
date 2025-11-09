@@ -33,7 +33,7 @@ class quickRibbon(object):
         
         #UI: user input fields for customizing the ribbon's controllers
         cmds.text("Ribbon controllers setup", align='left')
-        self.ctlCount = cmds.intFieldGrp(numberOfFields=1, label="# of controllers", value1=1)
+        self.ctlCount = cmds.intFieldGrp(numberOfFields=1, label="# of controllers", value1=3)
         cmds.separator(height=30)
         
         #UI: buttons to finalize
@@ -64,28 +64,33 @@ class quickRibbon(object):
         self.ribbon = cmds.nurbsPlane(d=3, axis=self.axis, w=self.nurbsW, lr=self.nurbsLr, n=self.nurbsN+'nurbsPlane', u=self.nurbsU, v=self.nurbsV, ch=0)
     
     def make_ribbon(self, *args):
-        #create and process follicle system
-        ##find number of follicles to be created
-        uvCompareList = [self.nurbsU, self.nurbsV]
-        fol_i = max(uvCompareList)
-        fol_uv_x = 0
-        fol_uv_delta = 1/fol_i
-        ##create follicles
-        for everyItem in range(0, fol_i):
-            fol_subfix = str(everyItem+1)
-            while fol_uv_x <= 1:
+        self.ctlNum = cmds.intFieldGrp(self.ctlCount, q=True, value1=True)
+        if self.ctlNum < 3:
+            cmds.warning("Please enter at least 3 for number of controllers")
+        else:
+            #create and process follicles
+            ##find number of follicles to be created
+            uvCompareList = [self.nurbsU, self.nurbsV]
+            fol_i = max(uvCompareList)
+            fol_list = list(range(0, fol_i+1))
+            fol_uv_x = 0
+            fol_uv_delta = 1/fol_i
+    
+            for everyItem in fol_list:
+                 fol_subfix = str(everyItem+1)
+             
+                 ##create a follicle
                  fol_shp=cmds.createNode('follicle', n=self.nurbsN+'flc_Shape'+fol_subfix) #returns follicle shape node
                  cmds.setAttr(fol_shp+'.simulationMethod', 0)
-                 ###find follicle transform node
+                 ###find the follicle transform node
                  fol_trns = cmds.pickWalk(d='up') #returns a list that contains follicle transform node
-                 cmds.rename(self.nurbsN+'flc_'+fol_subfix, ignoreShape=True)
-                 ###connect follicle shape and transform nodes
+                 ###connect the follicle's shape and transform nodes
                  cmds.connectAttr(fol_shp+'.outRotate', fol_trns[0]+'.rotate')
                  cmds.connectAttr(fol_shp+'.outTranslate', fol_trns[0]+'.translate')
-                 ###connect follicle to NURBS plane
+                 ###connect the follicle to NURBS plane
                  cmds.connectAttr(self.ribbon[0]+'Shape.local', fol_shp+'.inputSurface')
                  cmds.connectAttr(self.ribbon[0]+'Shape.worldMatrix', fol_shp+'.inputWorldMatrix')
-                 ###move follicles to to right place
+                 ###move the follicle to to right place
                  if self.nurbsU >= self.nurbsV:
                     cmds.setAttr(fol_shp+'.parameterU', fol_uv_x)
                     cmds.setAttr(fol_shp+'.parameterV', 0.5)
@@ -94,12 +99,19 @@ class quickRibbon(object):
                     cmds.setAttr(fol_shp+'.parameterU', 0.5)
                     cmds.setAttr(fol_shp+'.parameterV', fol_uv_x)
                     fol_uv_x +=fol_uv_delta
+                 ###create an offset group beneath the follicle
+                 fol_offset = cmds.group(em=True, n=self.nurbsN+'flc_offset_'+fol_subfix)
+                 cmds.parent(fol_offset, fol_trns[0], r=True)
+                 ###create a follicle joint
+                 cmds.joint(rad=0.3, n=self.nurbsN+'flc_jnt_'+fol_subfix)#automatically parented under offset
+        
+            ##group all created follicles
+            all_fol=cmds.ls(self.nurbsN+'flc*', type='follicle')
+            cmds.group(all_fol, n=self.nurbsN+'follicle_grp')
 
-        #create follicle joints
-
-        #parent follicle joints under corresponding follicles
-
-        #create controller joints
+            #create controller joints
+            
+        
 
         #create controllers and parent-constrain controller joints
 
@@ -110,5 +122,5 @@ class quickRibbon(object):
         #orient-constrain the group of controllers after the first and before the middle
 
         #orient-constrain the group of controllers after the middle and before the last
-            
+
 quickRibbon()
