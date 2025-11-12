@@ -136,20 +136,20 @@ class quickRibbon(object):
 
             ##create ctl joint at the first follicle joint
             loc_folJnt_01 = cmds.xform(self.nurbsN+'ribbon_flc_jnt_1', q=True, t=True, ws=True)
+            cmds.select(cl=True)
             ctJnt_01 = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_1', p=loc_folJnt_01)
             ##create the first ctl and parent-constrain the first ctl joint
             ct_01 = make_ctl('ribbon_ctl_1', ctJnt_01)
             cmds.parentConstraint(ct_01, ctJnt_01)
-            cmds.select(cl=True)
             
             ##create ctl joint at the last follicle joint
             ctJnt_count = cmds.intFieldGrp(self.ctlCount, q=True, value1=True)
             loc_folJnt_last = cmds.xform(self.nurbsN+'ribbon_flc_jnt_'+str(fol_i+1), q=True, t=True, ws=True)
+            cmds.select(cl=True)
             ctJnt_end = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+str(ctJnt_count), p=loc_folJnt_last)
             ##create the last ctl and parent-constrain the last ctl joint
             ct_end = make_ctl('ribbon_ctl_'+str(ctJnt_count), ctJnt_end)
             cmds.parentConstraint(ct_end, ctJnt_end)
-            cmds.select(cl=True)
             
             ##define all the indexes needed for calculating middle ctl joint locations here
             ctJnt_pcDelta = 1/(ctJnt_count-1)#increments for point constraint weights from first and last joint on middle joints
@@ -164,8 +164,8 @@ class quickRibbon(object):
                 ctJnt_mid = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+ctJnt_mid_subfix)
                 ###place the joint with point constraint and then delete the point constraint
                 cmds.pointConstraint(ctJnt_01, ctJnt_end, ctJnt_mid)
-                ctJnt_pc1 = cmds.pointConstraint(ctJnt_01, ctJnt_mid, e=True, w=ctJnt_pcDelta*(everyJoint-1))
-                ctJnt_pc2 = cmds.pointConstraint(ctJnt_end, ctJnt_mid, e=True, w=1-ctJnt_pcDelta*(everyJoint-1))
+                ctJnt_pc1 = cmds.pointConstraint(ctJnt_01, ctJnt_mid, e=True, w=1-ctJnt_pcDelta*(everyJoint-1))
+                ctJnt_pc2 = cmds.pointConstraint(ctJnt_end, ctJnt_mid, e=True, w=ctJnt_pcDelta*(everyJoint-1))
                 cmds.delete(ctJnt_pc1,ctJnt_pc2)
                 ###create the ctl and parent-constrain ctl joints
                 ct_mid = make_ctl('ribbon_ctl_'+ctJnt_mid_subfix, ctJnt_mid)
@@ -178,10 +178,12 @@ class quickRibbon(object):
             
 
 
+        #(automated ctl motions)
+        ##group ctJnts
+        ##create mid_ribbon_fk_ctl, up offset, and low offset (if ctls between first&median/median&last >=2, create fk_ctl too)
+        ##parent coresponding ctls (between first&median; between median&last) under the corresponding offset
 
-        #point-constrain the middle controller
-
-        #orient-constrain the group of controllers after the first and before the middle
+        #orient-constrain up offset and low offset to mid offset (aimVec1/-1,0,0, world up object rotation upVec&worldUpVec0,0,1)
 
         #orient-constrain the group of controllers after the middle and before the last
 
