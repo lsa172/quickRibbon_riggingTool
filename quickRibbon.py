@@ -120,7 +120,7 @@ class quickRibbon(object):
         
             ##group all created follicles
             all_fol = cmds.ls(self.nurbsN+'ribbon_flc_*', type='follicle')
-            cmds.group(all_fol, n=self.nurbsN+'ribbon_flc_grp')
+            grp_allFol = cmds.group(all_fol, n=self.nurbsN+'ribbon_flc_grp')
 
             ##create controller joints and controllers
             
@@ -175,16 +175,21 @@ class quickRibbon(object):
             all_ctJnts = cmds.ls(self.nurbsN+'ribbon_control_jnt_*', type='joint')
             cmds.skinCluster(all_ctJnts, self.ribbon)
 
+            ##group all controller joints
+            grp_allCtJnts = cmds.group(all_ctJnts, n=self.nurbsN+'robbon_ctlJnt_grp')
+
             
 
 
         #(automated ctl motions)
-        ##group ctJnts
-        ##create mid_ribbon_fk_ctl, up offset, and low offset (if ctls between first&median/median&last >=2, create fk_ctl too)
-        ##parent coresponding ctls (between first&median; between median&last) under the corresponding offset
+        ##create mid_ribbon_fk_ctl&ofst(ofst pc by first&last ctl), up offset, and low offset (if ctls between first&median/median&last >=2, create fk_ctl too)
+        
+        ##parent coresponding ctls (between first&median; between median&last) under the corresponding offset(or ctls)
 
-        #orient-constrain up offset and low offset to mid offset (aimVec1/-1,0,0, world up object rotation upVec&worldUpVec0,0,1)
+        ##orient-constrain up offset and low offset to mid offset (aimVec1/-1,0,0, world up object rotation upVec&worldUpVec0,0,1)
 
-        #orient-constrain the group of controllers after the middle and before the last
+        ##group all ctl
+
+        #group all ribbon thingy
 
 quickRibbon()
