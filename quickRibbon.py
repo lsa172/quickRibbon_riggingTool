@@ -131,24 +131,25 @@ class quickRibbon(object):
                 mct_loc = cmds.xform(ctjnt, q=True, t=True, ws=True)
                 mct_proto = cmds.circle(nr=mct_axis, r=1.2, ch=False, n=self.nurbsN+ctName, c=mct_loc)
                 cmds.matchTransform(mct_proto, ctjnt, piv=True)
+                cmds.group(n=self.nurbsN+ctName+'offset')
                 return mct_proto
 
             ##create ctl joint at the first follicle joint
             loc_folJnt_01 = cmds.xform(self.nurbsN+'ribbon_flc_jnt_1', q=True, t=True, ws=True)
-            cmds.select(cl=True)
             ctJnt_01 = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_1', p=loc_folJnt_01)
             ##create the first ctl and parent-constrain the first ctl joint
             ct_01 = make_ctl('ribbon_ctl_1', ctJnt_01)
             cmds.parentConstraint(ct_01, ctJnt_01)
+            cmds.select(cl=True)
             
             ##create ctl joint at the last follicle joint
             ctJnt_count = cmds.intFieldGrp(self.ctlCount, q=True, value1=True)
             loc_folJnt_last = cmds.xform(self.nurbsN+'ribbon_flc_jnt_'+str(fol_i+1), q=True, t=True, ws=True)
-            cmds.select(cl=True)
             ctJnt_end = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+str(ctJnt_count), p=loc_folJnt_last)
             ##create the last ctl and parent-constrain the last ctl joint
             ct_end = make_ctl('ribbon_ctl_'+str(ctJnt_count), ctJnt_end)
             cmds.parentConstraint(ct_end, ctJnt_end)
+            cmds.select(cl=True)
             
             ##define all the indexes needed for calculating middle ctl joint locations here
             ctJnt_pcDelta = 1/(ctJnt_count-1)#increments for point constraint weights from first and last joint on middle joints
@@ -156,9 +157,10 @@ class quickRibbon(object):
             
             ##create ctl joints in the middle
             for everyJoint in ctJnt_list:
-                ###create the ctl joint
-                ctJnt_mid_subfix = str(everyJoint)
+                ###Create offset group
                 cmds.select(cl=True)
+                ctJnt_mid_subfix = str(everyJoint)
+                ###create the ctl joint
                 ctJnt_mid = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+ctJnt_mid_subfix)
                 ###place the joint with point constraint and then delete the point constraint
                 cmds.pointConstraint(ctJnt_01, ctJnt_end, ctJnt_mid)
