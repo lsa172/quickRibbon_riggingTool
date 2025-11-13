@@ -124,13 +124,14 @@ class quickRibbon(object):
 
             ##create controller joints and controllers
             
-            ##define function to make ctls
-            def make_ctl(ctName, ctjnt):
-                mct_axisArray = [[0.0,0.0,1.0], [1.0,0.0,0.0], [1.0,0.0,0.0]]
-                mct_axis = mct_axisArray[self.axisChoice-1]
-                mct_loc = cmds.xform(ctjnt, q=True, t=True, ws=True)
+            ##define function to make ctls (make this a class)
+            def make_ctl(ctName, ctLoc): 
+                mct_axisArray = [[0.0,0.0,1.0], [1.0,0.0,0.0], [1.0,0.0,0.0]] #private property
+                mct_axis = mct_axisArray[self.axisChoice-1] #property
+                mct_loc = cmds.xform(ctLoc, q=True, t=True, ws=True) #property
+                #def
                 mct_proto = cmds.circle(nr=mct_axis, r=1.2, ch=False, n=self.nurbsN+ctName, c=mct_loc)
-                cmds.matchTransform(mct_proto, ctjnt, piv=True)
+                cmds.matchTransform(mct_proto, ctLoc, piv=True)
                 cmds.group(n=self.nurbsN+ctName+'offset')
                 return mct_proto
 
