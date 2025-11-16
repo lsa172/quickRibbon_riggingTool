@@ -51,7 +51,7 @@ class quickRibbon(object):
 
         #UI: user notice text
         cmds.separator(height=15, style='none')
-        cmds.text("P.S. Please keep this window open while editing the NURBS plane for your ribbon", align='center')
+        cmds.text("P.S. Do not close this window while editing the NURBS plane for your ribbon", align='center')
         
         #display new window
         cmds.showWindow()
