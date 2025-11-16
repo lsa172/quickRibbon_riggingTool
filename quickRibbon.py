@@ -116,41 +116,72 @@ class quickRibbon(object):
                  fol_offset = cmds.group(em=True, n=self.nurbsN+'ribbon_flc_offset_'+fol_subfix)
                  cmds.parent(fol_offset, fol_trns[0], r=True)
                  ###create a follicle joint
-                 cmds.joint(rad=0.3, n=self.nurbsN+'ribbon_flc_jnt_'+fol_subfix)#automatically parented under offset
+                 cmds.joint(rad=0.3, n=self.nurbsN+'ribbon_bind_jnt_'+fol_subfix)#automatically parented under offset
         
             ##group all created follicles
             all_fol = cmds.ls(self.nurbsN+'ribbon_flc_*', type='follicle')
             grp_allFol = cmds.group(all_fol, n=self.nurbsN+'ribbon_flc_grp')
 
-            ##create controller joints and controllers
             
-            ##define function to make ctls (make this a class)
-            def make_ctl(ctName, ctLoc): 
-                mct_axisArray = [[0.0,0.0,1.0], [1.0,0.0,0.0], [1.0,0.0,0.0]] #private property
-                mct_axis = mct_axisArray[self.axisChoice-1] #property
-                mct_loc = cmds.xform(ctLoc, q=True, t=True, ws=True) #property
-                #def
-                mct_proto = cmds.circle(nr=mct_axis, r=1.2, ch=False, n=self.nurbsN+ctName, c=mct_loc)
-                cmds.matchTransform(mct_proto, ctLoc, piv=True)
-                cmds.group(n=self.nurbsN+ctName+'offset')
-                return mct_proto
+            #create controller joints and controllers
+            ##define the class of controllers
+            class Controllers():
+                def __init__(self, ctName, ctLoc, ct_axChoice):
+                    self.name = ctName
+                    self.ctLoc=ctLoc
+                    self.loc = cmds.xform(ctLoc, q=True, t=True, ws=True)
+                    self.ctAxisArray = [[0.0,0.0,1.0], [1.0,0.0,0.0], [1.0,0.0,0.0]]
+                    self.ctAxis = self.ctAxisArray[ct_axChoice-1]
+                
+                def makeCtl(self):
+                    pass
+            
+            class IK_ctl(Controllers): #makes circle ctl and its offset grp
+                def __init__(self, ctName, ctLoc, ct_axChoice):
+                    super().__init__(ctName, ctLoc, ct_axChoice)
+                
+                def makeCtl(self):
+                    circle_ctl = cmds.circle(nr=self.ctAxis, r=1.2, ch=False, n=self.name, c=self.loc)
+                    cmds.matchTransform(circle_ctl, self.ctLoc, piv=True)
+                    cmds.group(n=self.name+'_offset')
+                    return self.name
+            
+            class FK_ctl(Controllers): #makes cube prism ctl and its offset grp
+                def __init__(self, ctName, ctLoc, ct_axChoice):
+                    super().__init__(ctName, ctLoc, ct_axChoice)
+                
+                def makeCtl(self):
+                    cube_ctl = cmds.curve( n=self.name, degree = 1, point = [ ( 0.5, 0.5, 0.5 ), ( 0.5, 0.5, -0.5 ), ( -0.5, 0.5, -0.5 ), ( -0.5, -0.5, -0.5 ), ( 0.5, -0.5, -0.5 ), ( 0.5, 0.5, -0.5 ), ( -0.5, 0.5, -0.5 ), ( -0.5, 0.5, 0.5 ), ( 0.5, 0.5, 0.5 ), ( 0.5, -0.5, 0.5 ), ( 0.5, -0.5, -0.5 ), ( -0.5, -0.5, -0.5 ), ( -0.5, -0.5, 0.5 ), ( 0.5, -0.5, 0.5 ), ( -0.5, -0.5, 0.5 ), ( -0.5, 0.5, 0.5 ) ], knot = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ] )
+                    cmds.move(self.loc[0], self.loc[1], self.loc[2], cube_ctl, a=True)
+                    cmds.DeleteHistory()
+                    cmds.makeIdentity(cube_ctl, t=True, r=True, s=True)
+                    cmds.group(n=self.name+'offset')
+                    return self.name
+
+            #create IK ctls and joints
+            ##create the group for all ctls
+            grp_allCtls = cmds.group(em=True, n=self.nurbsN+'_ribbon_ctl_grp')
 
             ##create ctl joint at the first follicle joint
-            loc_folJnt_01 = cmds.xform(self.nurbsN+'ribbon_flc_jnt_1', q=True, t=True, ws=True)
+            loc_folJnt_01 = cmds.xform(self.nurbsN+'ribbon_bind_jnt_1', q=True, t=True, ws=True)
             cmds.select(cl=True)
             ctJnt_01 = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_1', p=loc_folJnt_01)
             ##create the first ctl and parent-constrain the first ctl joint
-            ct_01 = make_ctl('ribbon_ctl_1', ctJnt_01)
+            c1 = IK_ctl(self.nurbsN+'ribbon_ctl_1', ctJnt_01, self.axisChoice)
+            ct_01 = c1.makeCtl()
             cmds.parentConstraint(ct_01, ctJnt_01)
+            cmds.parent(ct_01, grp_allCtls)
             
             ##create ctl joint at the last follicle joint
             ctJnt_count = cmds.intFieldGrp(self.ctlCount, q=True, value1=True)
-            loc_folJnt_last = cmds.xform(self.nurbsN+'ribbon_flc_jnt_'+str(fol_i+1), q=True, t=True, ws=True)
+            loc_folJnt_last = cmds.xform(self.nurbsN+'ribbon_bind_jnt_'+str(fol_i+1), q=True, t=True, ws=True)
             cmds.select(cl=True)
             ctJnt_end = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+str(ctJnt_count), p=loc_folJnt_last)
             ##create the last ctl and parent-constrain the last ctl joint
-            ct_end = make_ctl('ribbon_ctl_'+str(ctJnt_count), ctJnt_end)
+            ce = IK_ctl(self.nurbsN+'ribbon_ctl_'+str(ctJnt_count), ctJnt_end, self.axisChoice)
+            ct_end = ce.makeCtl()
             cmds.parentConstraint(ct_end, ctJnt_end)
+            cmds.parent(ct_end, grp_allCtls)
             
             ##define all the indexes needed for calculating middle ctl joint locations here
             ctJnt_pcDelta = 1/(ctJnt_count-1)#increments for point constraint weights from first and last joint on middle joints
@@ -164,25 +195,50 @@ class quickRibbon(object):
                 ###create the ctl joint
                 ctJnt_mid = cmds.joint(rad=1.0, n=self.nurbsN+'ribbon_control_jnt_'+ctJnt_mid_subfix)
                 ###place the joint with point constraint and then delete the point constraint
-                cmds.pointConstraint(ctJnt_01, ctJnt_end, ctJnt_mid)
+                cmds.pointConstraint(ctJnt_01, ctJnt_end, ctJnt_mid, mo=False)
                 ctJnt_pc1 = cmds.pointConstraint(ctJnt_01, ctJnt_mid, e=True, w=1-ctJnt_pcDelta*(everyJoint-1))
                 ctJnt_pc2 = cmds.pointConstraint(ctJnt_end, ctJnt_mid, e=True, w=ctJnt_pcDelta*(everyJoint-1))
                 cmds.delete(ctJnt_pc1,ctJnt_pc2)
                 ###create the ctl and parent-constrain ctl joints
-                ct_mid = make_ctl('ribbon_ctl_'+ctJnt_mid_subfix, ctJnt_mid)
+                cm = IK_ctl(self.nurbsN+'ribbon_ctl_'+ctJnt_mid_subfix, ctJnt_mid, self.axisChoice)
+                ct_mid = cm.makeCtl()
                 cmds.parentConstraint(ct_mid, ctJnt_mid)
+                cmds.parent(ct_mid, grp_allCtls)
             
             ##skinbind controller joints to the NURBS plane
             all_ctJnts = cmds.ls(self.nurbsN+'ribbon_control_jnt_*', type='joint')
             cmds.skinCluster(all_ctJnts, self.ribbon)
 
             ##group all controller joints
-            grp_allCtJnts = cmds.group(all_ctJnts, n=self.nurbsN+'robbon_ctlJnt_grp')
+            grp_allCtJnts = cmds.group(all_ctJnts, n=self.nurbsN+'ribbon_ctlJnt_grp')
 
-            
+            #automate ctl motions
+            ##find the median of controller number to prepare for if statement
+            median_of_ctlCount = statistics.median(self.ctlNum)
+            int_median_ctlCount = math.floor(median_of_ctlCount)
+            oddCtlCount = isinstance(median_of_ctlCount, int)
+
+            #define function to create&placing FK controllers
+            def place_FK(fkname, objUp, objDown):
+                fkInst = FK_ctl(fkname, objUp)
+                ct_FK_inst = fkInst.makeCtl()
+                pcFKinst = cmds.pointConstraint(objUp, objDown, ct_FK_inst, mo=False)
+                cmds.delete(pcFKinst)
+                return fkname
+                    
+            ##create middle fk ctl
+            ct_FK_mid = place_FK(self.nurbsN+'ribbon_FK_ctl_mid', ctJnt_01, ctJnt_end)
+
+            ##create up & low fk ctl depending on ctl number
+            if self.ctlNum > 3:
+                ct_FK_up = place_FK(self.nurbsN+'ribbon_FK_ctl_up', ctJnt_01, ct_FK_mid)
+                ct_FK_low = place_FK(self.nurbsN+'ribbon_FK_ctl_low', ct_FK_mid, ctJnt_end)
+
+            if oddCtlCount==True:
+                cmds.parentConstraint(ct_FK_mid, self.nurbsN+'ribbon_ctl_'+str(median_of_ctlCount)+'_offset')
 
 
-        #(automated ctl motions)
+
         ##create mid_ribbon_fk_ctl&ofst(ofst pc by first&last ctl), up offset, and low offset (if ctls between first&median/median&last >=2, create fk_ctl too)
         
         ##parent coresponding ctls (between first&median; between median&last) under the corresponding offset(or ctls)
