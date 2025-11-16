@@ -2,11 +2,10 @@
 QuickRibbon: a tool to automate ribbon setups
 Created by Linqi "Lyne" Sun under the supervision of Philippe Pasquier at Simon Fraser University 
 for class IAT806: Interdisciplinary Design Approaches to Computing
+Feedback and friendly comments are welcomed! lsa172@sfu.ca
 '''
 
 import maya.cmds as cmds
-import maya.mel as mel
-import sys
 import statistics
 import math
 
@@ -153,6 +152,8 @@ class quickRibbon(object):
                 def makeCtl(self):
                     cube_ctl = cmds.curve( n=self.name, degree = 1, point = [ ( 0.5, 0.5, 0.5 ), ( 0.5, 0.5, -0.5 ), ( -0.5, 0.5, -0.5 ), ( -0.5, -0.5, -0.5 ), ( 0.5, -0.5, -0.5 ), ( 0.5, 0.5, -0.5 ), ( -0.5, 0.5, -0.5 ), ( -0.5, 0.5, 0.5 ), ( 0.5, 0.5, 0.5 ), ( 0.5, -0.5, 0.5 ), ( 0.5, -0.5, -0.5 ), ( -0.5, -0.5, -0.5 ), ( -0.5, -0.5, 0.5 ), ( 0.5, -0.5, 0.5 ), ( -0.5, -0.5, 0.5 ), ( -0.5, 0.5, 0.5 ) ], knot = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ] )
                     cmds.move(self.loc[0], self.loc[1], self.loc[2], cube_ctl, a=True)
+                    shapeName = cmds.pickWalk(d='down')
+                    cmds.rename(shapeName[0], self.name+'Shape')
                     cmds.DeleteHistory()
                     cmds.makeIdentity(cube_ctl, t=True, r=True, s=True)
                     cmds.group(n=self.name+'_offset')
@@ -230,25 +231,34 @@ class quickRibbon(object):
                     
             ##create middle fk ctl
             ct_FK_mid = place_FK(self.nurbsN+'ribbon_FK_ctl_mid', ctJnt_01, ctJnt_end, self.axisChoice)
+            ##aim middle fk ctl
+            cmds.aimConstraint(ct_end, ct_FK_mid+'_offset', mo=False, aim = (1.0, 0.0, 0.0), u=(0.0, 0.0, 1.0), wuo=ct_end+'_offset', wut='objectrotation')
 
-            ##create up & low fk ctl depending on ctl number
-            
+            ##create up & low fk ctl if more than 3 ik ctls
             if self.ctlNum > 3:
                 ct_FK_up = place_FK(self.nurbsN+'ribbon_FK_ctl_up', ctJnt_01, ct_FK_mid, self.axisChoice)
                 ct_FK_low = place_FK(self.nurbsN+'ribbon_FK_ctl_low', ct_FK_mid, ctJnt_end, self.axisChoice)
-                #aim up&low fk ctl to mid fk ctl
+                ###aim up&low fk ctl to mid fk ctl
                 cmds.aimConstraint(ct_FK_mid, ct_FK_up+'_offset', mo=False, aim = (1.0, 0.0, 0.0), u=(0.0, 0.0, 1.0), wuo=ct_FK_mid+'_offset', wut='objectrotation')
                 cmds.aimConstraint(ct_FK_mid, ct_FK_low+'_offset', mo=False, aim = (-1.0, 0.0, 0.0), u=(0.0, 0.0, 1.0), wuo=ct_FK_mid+'_offset', wut='objectrotation')
-                #split the ctl list and parent ik ctls under corresponding fk ctls
-                
-                for ctl in ctl_list:
-                    for i in range(2, int_median_ctlCount+1):
-                        cmds.parent(ctl_list[i], world=True)
-                        cmds.parent(ctl_list[i], ct_FK_up)
-                    for i in range(int_median_ctlCount+1, len(ctl_list)):
-                        cmds.parent(ctl_list[i], world=True)
-                        cmds.parent(ctl_list[i], ct_FK_low)
+                ###if 6 ik ctls and more, split the ctl list and parent ik ctls under corresponding fk ctls
+                if self.ctlNum > 5:
+                    for ctl in ctl_list:
+                        for i in range(2, int_median_ctlCount+1):
+                            cmds.parent(ctl_list[i], world=True)
+                            cmds.parent(ctl_list[i], ct_FK_up)
+                        for i in range(int_median_ctlCount+1, len(ctl_list)):
+                            cmds.parent(ctl_list[i], world=True)
+                            cmds.parent(ctl_list[i], ct_FK_low)
+                ###if less than 6 ik ctls, parent corresponding ik ctls under offset grp and remove extra FK ctls for redundancy
                 if self.ctlNum <= 5:
+                    for ctl in ctl_list:
+                        for i in range(2, int_median_ctlCount+1):
+                            cmds.parent(ctl_list[i], world=True)
+                            cmds.parent(ctl_list[i], ct_FK_up+'_offset')
+                        for i in range(int_median_ctlCount+1, len(ctl_list)):
+                            cmds.parent(ctl_list[i], world=True)
+                            cmds.parent(ctl_list[i], ct_FK_low+'_offset')
                     cmds.delete(ct_FK_up, ct_FK_low)
 
             if oddCtlCount==True:
@@ -256,13 +266,35 @@ class quickRibbon(object):
                 cmds.parent(ct_media, world=True)
                 cmds.parent(ct_media, ct_FK_mid)
                 
+            
+            ##group all ctl
+            cmds.parent(ct_FK_mid+'_offset', grp_allCtls)
+            cmds.parent(ct_FK_up+'_offset', grp_allCtls)
+            cmds.parent(ct_FK_low+'_offset', grp_allCtls)
+
+            #group all ribbon rig items
+            grp_all = cmds.group(em=True, n=self.nurbsN+'ribbon_rig_grp')
+            cmds.select(grp_allCtJnts, grp_allCtls, grp_allFol, self.ribbon)
+            ls=cmds.ls(sl=True)
+            cmds.parent(ls, grp_all)
+            cmds.select(cl=True)
+
+            #create selection set for all bind joints
+            set_bindJnts = cmds.ls(self.nurbsN+'ribbon_bind_jnt_*', type='joint')
+            cmds.sets(set_bindJnts, n=self.nurbsN+'ribbon_all_bind_joints_set')
+
+            #create selection set for all ik ctls
+            set_ik = cmds.ls(self.nurbsN+'ribbon_ctl_*', type = 'nurbsCurve')
+            cmds.sets(set_ik, n=self.nurbsN+'ribbon_all_IK_ctls_set')
+
+            #create selection set for all fk ctls
+            set_fk = cmds.ls(self.nurbsN+'ribbon_FK_ctl_*', type = 'nurbsCurve')
+            cmds.sets(set_fk, n=self.nurbsN+'ribbon_all_FK_ctls_set')
+
+            #create slection set for all ctls
+            set_allCTL = set_ik + set_fk
+            cmds.sets(set_allCTL, n=self.nurbsN+'ribbon_all_ctls_set')
 
 
-
-       
-
-        ##group all ctl
-
-        #group all ribbon thingy
 
 quickRibbon()
