@@ -18,3 +18,8 @@ How to use:
 notes:
 -sometimes the automatic skinweight assignment to controller joints on the NRUBS plane may not be ideal. If the ribbon setup does not
     deform ideally, please double-check the skinweight on its NURBS plane first
+
+Bonus content! LoadQuickRibbon script:
+If you downloaded or copied the quickRibbon.py script in Maya's default script folder (usually \Documents\maya\scripts) and import or copy
+this script into Maya's script editor, it will run the quickRibbon tool for you. It's pretty handy if you want to develop upon the current
+quickRibbon script.
