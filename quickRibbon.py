@@ -114,7 +114,7 @@ class quickRibbon(object):
                  ###create an offset group beneath the follicle
                  fol_offset = cmds.group(em=True, n=self.nurbsN+'ribbon_flc_offset_'+fol_subfix)
                  cmds.parent(fol_offset, fol_trns[0], r=True)
-                 ###create a follicle joint
+                 ###create a bind joint
                  cmds.joint(rad=0.3, n=self.nurbsN+'ribbon_bind_jnt_'+fol_subfix)#automatically parented under offset
         
             ##group all created follicles
